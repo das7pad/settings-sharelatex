@@ -10,14 +10,19 @@ merge = (settings, defaults) ->
 			defaults[key] = value
 	return defaults
 
-defaultSettingsPath = path.normalize(__dirname + "/../../config/settings.defaults")
+possibleDefaultSettingsPaths = [
+	path.normalize(__dirname + "/../../config/settings.defaults"),
+	path.normalize(process.cwd() + "/config/settings.defaults"),
+]
 
-if fs.existsSync("#{defaultSettingsPath}.coffee") or fs.existsSync("#{defaultSettingsPath}.js")
-	defaults = require(defaultSettingsPath)
-	settingsExist = true
-else
-	defaults = {}
-	settingsExist = false
+defaults = {}
+settingsExist = false
+
+for defaultSettingsPath in possibleDefaultSettingsPaths
+	if fs.existsSync("#{defaultSettingsPath}.coffee") or fs.existsSync("#{defaultSettingsPath}.js")
+		defaults = require(defaultSettingsPath)
+		settingsExist = true
+		break
 
 if process.env.SHARELATEX_CONFIG?
 	possibleConfigFiles = [process.env.SHARELATEX_CONFIG]
