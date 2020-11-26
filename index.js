@@ -1,12 +1,10 @@
-let possibleConfigFiles
 const fs = require('fs')
-const path = require('path')
-const env = (process.env.NODE_ENV || 'development').toLowerCase()
+const Path = require('path')
 
 function merge(settings, defaults) {
-  for (const key in settings) {
-    const value = settings[key]
-    if (typeof value === 'object' && !(value instanceof Array)) {
+  for (const [key, value] of Object.entries(settings)) {
+    // null and Array are false positive objects
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       defaults[key] = merge(settings[key], defaults[key] || {})
     } else {
       defaults[key] = value
@@ -15,46 +13,59 @@ function merge(settings, defaults) {
   return defaults
 }
 
-const possibleDefaultSettingsPaths = [
-  path.normalize(__dirname + '/../../config/settings.defaults'),
-  path.normalize(process.cwd() + '/config/settings.defaults'),
-]
-
-let defaults = {}
-let settingsExist = false
-
-for (const defaultSettingsPath of possibleDefaultSettingsPaths) {
-  if (
-    fs.existsSync(`${defaultSettingsPath}.coffee`) ||
-    fs.existsSync(`${defaultSettingsPath}.js`)
-  ) {
-    defaults = require(defaultSettingsPath)
-    settingsExist = true
-    break
+function resolveConfigPath(configPath) {
+  for (const extension of ['', '.js', '.json', '.coffee']) {
+    const fullConfigPath = `${configPath}${extension}`
+    try {
+      const stat = fs.statSync(fullConfigPath)
+      if (stat.isDirectory()) continue
+      return fullConfigPath
+    } catch (e) {}
   }
 }
 
-if (process.env.SHARELATEX_CONFIG) {
-  possibleConfigFiles = [process.env.SHARELATEX_CONFIG]
-} else {
-  possibleConfigFiles = [
-    process.cwd() + `/config/settings.${env}.js`,
-    path.normalize(__dirname + `/../../config/settings.${env}.js`),
-    process.cwd() + `/config/settings.${env}.coffee`,
-    path.normalize(__dirname + `/../../config/settings.${env}.coffee`),
+function loadConfig(configPath) {
+  if (Path.extname(configPath) === '.coffee') {
+    // PERF: lazy-load coffee-script
+    // coffee-script will install a module loader
+    // (and do lot's of other strange things for stack-traces and such)
+    require('coffee-script')
+  }
+  return require(configPath)
+}
+
+function getSettingsFor(mode) {
+  const possibleSettingsPaths = [
+    Path.join(__dirname, `../../config/settings.${mode}`),
+    Path.join(process.cwd(), `config/settings.${mode}`),
   ]
-}
 
-for (const file of possibleConfigFiles) {
-  if (fs.existsSync(file)) {
-    module.exports = merge(require(file), defaults)
-    settingsExist = true
-    break
+  for (const defaultSettingsPath of possibleSettingsPaths) {
+    const configPath = resolveConfigPath(defaultSettingsPath)
+    if (!configPath) continue
+
+    return loadConfig(configPath)
   }
+  return {}
 }
 
-if (!settingsExist) {
+function getCustomSettings() {
+  if (process.env.SHARELATEX_CONFIG) {
+    const resolvedPath = resolveConfigPath(process.env.SHARELATEX_CONFIG)
+    if (!resolvedPath) return {}
+    return loadConfig(resolvedPath)
+  }
+
+  const nodeEnv = (process.env.NODE_ENV || 'development').toLowerCase()
+  return getSettingsFor(nodeEnv)
+}
+
+function getDefaultSettings() {
+  return getSettingsFor('defaults')
+}
+
+module.exports = merge(getCustomSettings(), getDefaultSettings())
+
+if (Object.keys(module.exports).length === 0) {
   console.warn("No settings or defaults found. I'm flying blind.")
 }
-
-module.exports = defaults
