@@ -1,15 +1,9 @@
-/*
- * decaffeinate suggestions:
- * DS101: Remove unnecessary use of Array.from
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
 let possibleConfigFiles
 const fs = require('fs')
 const path = require('path')
 const env = (process.env.NODE_ENV || 'development').toLowerCase()
 
-var merge = function (settings, defaults) {
+function merge(settings, defaults) {
   for (const key in settings) {
     const value = settings[key]
     if (typeof value === 'object' && !(value instanceof Array)) {
@@ -29,7 +23,7 @@ const possibleDefaultSettingsPaths = [
 let defaults = {}
 let settingsExist = false
 
-for (const defaultSettingsPath of Array.from(possibleDefaultSettingsPaths)) {
+for (const defaultSettingsPath of possibleDefaultSettingsPaths) {
   if (
     fs.existsSync(`${defaultSettingsPath}.coffee`) ||
     fs.existsSync(`${defaultSettingsPath}.js`)
@@ -40,7 +34,7 @@ for (const defaultSettingsPath of Array.from(possibleDefaultSettingsPaths)) {
   }
 }
 
-if (process.env.SHARELATEX_CONFIG != null) {
+if (process.env.SHARELATEX_CONFIG) {
   possibleConfigFiles = [process.env.SHARELATEX_CONFIG]
 } else {
   possibleConfigFiles = [
@@ -51,7 +45,7 @@ if (process.env.SHARELATEX_CONFIG != null) {
   ]
 }
 
-for (const file of Array.from(possibleConfigFiles)) {
+for (const file of possibleConfigFiles) {
   if (fs.existsSync(file)) {
     module.exports = merge(require(file), defaults)
     settingsExist = true
