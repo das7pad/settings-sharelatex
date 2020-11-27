@@ -1,11 +1,11 @@
 {
-  "name": "settings-sharelatex",
-  "homepage": "www.sharelatex.com",
-  "description": "A centralised settings system for ShareLaTeX",
+  "name": "@overleaf/settings",
+  "homepage": "https://overleaf.com",
+  "description": "A centralised settings system for Overleaf",
   "version": "2.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sharelatex/settings-sharelatex.git"
+    "url": "https://github.com/overleaf/settings-module.git"
   },
   "files": [
     "index.js",
