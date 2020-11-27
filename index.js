@@ -1,5 +1,6 @@
 const fs = require('fs')
 const Path = require('path')
+const util = require('util')
 
 function merge(settings, defaults) {
   for (const [key, value] of Object.entries(settings)) {
@@ -24,12 +25,27 @@ function resolveConfigPath(configPath) {
   }
 }
 
+function deprecatedLoadCoffeeScriptConfig(configPath) {
+  // calling the wrapped function may throw with `$ node --throw-deprecation`
+  return util.deprecate(
+    () => {
+      // PERF: lazy-load coffee-script
+      // coffee-script will install a module loader
+      // (and do lot's of other strange things for stack-traces and such)
+      require('coffee-script')
+      return require(configPath)
+    },
+    'Loading settings via CoffeeScript files is deprecated.' +
+      ' Convert your config to using `$ npx decaffeinate ' +
+      Path.resolve(configPath) +
+      '`',
+    'DEP_OVERLEAF_SETTINGS_001'
+  )()
+}
+
 function loadConfig(configPath) {
   if (Path.extname(configPath) === '.coffee') {
-    // PERF: lazy-load coffee-script
-    // coffee-script will install a module loader
-    // (and do lot's of other strange things for stack-traces and such)
-    require('coffee-script')
+    return deprecatedLoadCoffeeScriptConfig(configPath)
   }
   return require(configPath)
 }
